@@ -1,0 +1,6 @@
+kettle:
+  log-file-path: /Users/a1234/Desktop/dev/apps/logs/${spring.application.name}/run-logs
+  encoding: utf-8
+  upload-path: /Users/a1234/Desktop/dev/apps/var/kettle-script-file
+  kettle-home: /Users/a1234/Desktop/dev/apps/var/file-rep
+  kettlePluginPackages: /Users/a1234/Desktop/dev/apps/var/file-rep/plugin

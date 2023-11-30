@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jason.datacollection.mapper.DiCategoryMapper">
+    <resultMap id="BaseResultMap" type="com.jason.datacollection.entity.DiCategory">
+        <id column="ID" jdbcType="VARCHAR" property="id"/>
+        <result column="NAME" jdbcType="VARCHAR" property="name"/>
+        <result column="CATEGORY_PID" jdbcType="VARCHAR" property="categoryPid"/>
+        <result column="IS_DEFAULT" jdbcType="DECIMAL" property="isDefault"/>
+        <result column="REP_ID" jdbcType="VARCHAR" property="repId"/>
+        <result column="PATH" jdbcType="VARCHAR" property="path"/>
+        <result column="CATEGORY_ID" jdbcType="VARCHAR" property="categoryId"/>
+        <result column="CODE" jdbcType="VARCHAR" property="code"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+    ID, NAME, CATEGORY_PID, IS_DEFAULT, REP_ID, PATH, CATEGORY_ID, CODE
+  </sql>
+    <select id="selectByRepId" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_CATEGORY
+        where REP_ID = #{id,jdbcType=VARCHAR}
+    </select>
+    <select id="findByCategoryIdAndRepId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_CATEGORY
+        where CATEGORY_ID = #{categoryId,jdbcType=VARCHAR} AND REP_ID=#{repId,jdbcType=VARCHAR}
+    </select>
+    <select id="findByRepIdOrderByCode" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_CATEGORY
+        where REP_ID = #{repId,jdbcType=VARCHAR} ORDER by CODE
+    </select>
+    <select id="findByIsDefaultAndRepId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_CATEGORY
+        where IS_DEFAULT = #{isDefault,jdbcType=VARCHAR} and REP_ID=#{repId,jdbcType=VARCHAR}
+    </select>
+    <select id="selectById" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_CATEGORY
+        where ID = #{id,jdbcType=VARCHAR}
+    </select>
+    <select id="findByCategoryPidAndRepId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_CATEGORY
+        where CATEGORY_PID = #{caregoryPid,jdbcType=VARCHAR} and REP_ID=#{repId,jdbcType=VARCHAR}
+    </select>
+    <delete id="deleteByCategoryIdInAndRepId" parameterType="java.util.Map">
+        delete from DI_CATEGORY where REP_ID = #{repId,jdbcType=VARCHAR}
+        and CATEGORY_ID in
+        <foreach item="item" collection="categorys" separator="," open="(" close=")" index="">
+            #{item, jdbcType=VARCHAR}
+        </foreach>
+    </delete>
+    <delete id="deleteByRepId" parameterType="java.util.Map">
+        delete from DI_CATEGORY where REP_ID = #{repId,jdbcType=VARCHAR}
+    </delete>
+    <insert id ="insertAll" parameterType="java.util.List" >
+        insert into
+        DI_CATEGORY
+        (ID, NAME, CATEGORY_PID, IS_DEFAULT, REP_ID, PATH, CATEGORY_ID, CODE)
+        select A.* from(
+        <foreach collection="list" item="dic" index="index" separator="UNION ALL">
+            SELECT
+            #{dic.id, jdbcType=VARCHAR},
+            #{dic.name, jdbcType=VARCHAR},
+            #{dic.categoryPid, jdbcType=VARCHAR},
+            #{dic.isDefault, jdbcType=VARCHAR},
+            #{dic.repId, jdbcType=VARCHAR},
+            #{dic.path, jdbcType=VARCHAR},
+            #{dic.categoryId, jdbcType=VARCHAR},
+            #{dic.code, jdbcType=VARCHAR}
+            FROM dual
+        </foreach>
+        )A
+    </insert >
+</mapper>

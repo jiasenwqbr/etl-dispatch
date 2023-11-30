@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>新增脚本</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../layui/css/layui.css" media="all">
+    <style>
+        .redstar {
+            color: red;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="layuimini-container">
+    <div class="layui-tab-content">
+        <div class="layuimini-main">
+            <form class="layui-form" lay-filter="applyInfo" action="" style="margin:10px 20px 0 10px">
+                <div class="layui-form-item">
+                    <label class="layui-form-label"
+                           style="padding: 9px 0;text-align: unset;margin-left: 10px">目标节点:</label>
+                    <div class="layui-input-block" style="margin-left: 100px;width: 250px">
+                        <div id="chooseAsset" class="xm-select-demo" style="margin-left: 30px"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="../layui/layui.js" charset="utf-8"></script>
+<script src="../js/jquery-1.9.0.js"></script>
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="../js/common/request.js"></script>
+
+<script>
+    layui.config({
+        base: "../lib/dist/"
+    }).extend({
+        xmSelect: "xm-select"
+    })
+</script>
+
+<script>
+    var targetId;
+
+    layui.use(['form', 'xmSelect'], function () {
+        let form = layui.form
+        xmSelect = layui.xmSelect;
+        //页面加载函数
+        $(document).ready(function () {
+            let repId = getUrlParams('repId');
+            renderTree(repId);
+        })
+
+        //渲染下拉选择树
+        function renderTree(repId) {
+            $.ajax({
+                type: "get",
+                contentType: "application/json;charset=UTF-8",
+                url: '/dataCollection/dicategory/findDiCateryByRep?id=' + repId,
+                success: function (result) {
+                    var data = transData(result.result, 'id', 'pid', 'children');
+                    var chooseAsset = xmSelect.render({
+                        el: '#chooseAsset',
+                        model: {label: {type: 'text'}},
+                        name: 'name',
+                        radio: true,
+                        data: data,
+                        clickClose: true,
+                        prop: {
+                            name: 'text',
+                            value: 'id',
+                        },
+                        tree: {
+                            show: true,
+                            strict: false,
+                            expandedKeys: [-1],
+                        },
+                        on: function (data) {
+                            targetId = data.change[0].id;
+                        },
+                        height: 'auto'
+                    });
+
+                },
+                //请求失败，包含具体的错误信息
+                error: function (e) {
+                }
+            });
+        }
+
+        function transData(data, idStr, pidStr, chindrenStr) {
+            var r = [], hash = {}, id = idStr, pid = pidStr, children = chindrenStr, i = 0, j = 0, len = data.length;
+            for (; i < len; i++) {
+                hash[data[i][id]] = data[i];
+            }
+            for (; j < len; j++) {
+                var aVal = data[j], hashVP = hash[aVal[pid]];
+                if (hashVP) {
+                    !hashVP[children] && (hashVP[children] = []);
+                    hashVP[children].push(aVal);
+                } else {
+                    r.push(aVal);
+                }
+            }
+            return r;
+        }
+    })
+
+    function jsonConvert(jsonString, oldKey,newKey) {
+        var json = JSON.parse(jsonString);
+        for (var i = 0; i < json.length; i++) {
+            json[i][oldKey] = json[i][newKey];   //'text'是需要的字段
+            delete json[i][oldKey];  //key是要替换为'text'的字段
+        }
+        return json;
+    }
+
+    window.getUrlParams = function (key) {
+        //获取url参数
+        var reg = new RegExp("(^|&)" + key + "=([^&]*)(&|$)", "i");
+        var url = decodeURI(window.location.search)
+        var r = url.substr(1).match(reg);
+        if (r != null) return unescape(r[2]);
+        return null;
+    }
+
+    //用于向父页面返回信息
+    function returnInfo() {
+        return targetId;
+    }
+
+</script>
+
+</body>
+
+</html>

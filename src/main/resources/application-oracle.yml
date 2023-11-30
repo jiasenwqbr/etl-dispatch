@@ -1,0 +1,6 @@
+spring:
+  datasource: # 数据库链接
+    url: jdbc:oracle:thin:@172.16.23.211:8064:orcl
+    username: data_collection
+    password: zkjn_0717
+    driver-class-name: oracle.jdbc.OracleDriver

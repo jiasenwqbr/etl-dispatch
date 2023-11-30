@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jason.datacollection.mapper.KScriptMonitorMapper">
+    <resultMap id="BaseResultMap" type="com.jason.datacollection.entity.KScriptMonitor">
+        <id column="ID" jdbcType="VARCHAR" property="id"/>
+        <result column="MONITOR_SCRIPT_ID" jdbcType="VARCHAR" property="monitorScriptId"/>
+        <result column="MONITOR_SUCCESS" jdbcType="VARCHAR" property="monitorSuccess"/>
+        <result column="MONITOR_FAIL" jdbcType="VARCHAR" property="monitorFail"/>
+        <result column="MONITOR_STATUS" jdbcType="DECIMAL" property="monitorStatus"/>
+        <result column="RUN_STATUS" jdbcType="OTHER" property="runStatus"/>
+        <result column="LAST_EXECUTE_TIME" jdbcType="TIMESTAMP" property="lastExecuteTime"/>
+        <result column="NEXT_EXECUTE_TIME" jdbcType="TIMESTAMP" property="nextExecuteTime"/>
+        <result column="ADD_TIME" jdbcType="TIMESTAMP" property="addTime"/>
+        <result column="ADD_USER" jdbcType="VARCHAR" property="addUser"/>
+        <result column="EDIT_TIME" jdbcType="TIMESTAMP" property="editTime"/>
+        <result column="EDIT_USER" jdbcType="VARCHAR" property="editUser"/>
+        <result column="DEL_FLAG" jdbcType="DECIMAL" property="delFlag"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        ID
+        , MONITOR_SCRIPT_ID, MONITOR_SUCCESS, MONITOR_FAIL, MONITOR_STATUS, RUN_STATUS,
+        LAST_EXECUTE_TIME, NEXT_EXECUTE_TIME, ADD_TIME, ADD_USER, EDIT_TIME, EDIT_USER, DEL_FLAG
+    </sql>
+    <select id="selectAll" parameterType="com.jason.datacollection.entity.KScriptMonitor"
+            resultType="com.jason.datacollection.entity.KScriptMonitor">
+        select a.* ,b.SCRIPT_NAME,b.SCRIPT_DESCRIPTION,c.CATEGORY_NAME from K_SCRIPT_MONITOR a INNER JOIN K_SCRIPT b ON
+        a.MONITOR_SCRIPT_ID=b.id LEFT JOIN k_category c ON b.category_id=c.id where 1=1
+        <if test="scriptName != null">
+            and b.SCRIPT_NAME like concat(concat('%',#{scriptName}),'%')
+        </if>
+        <if test="categoryId != null">
+            and c.ID=#{categoryId}
+        </if>
+        <if test="monitorStatus != null">
+            and a.MONITOR_STATUS=#{monitorStatus}
+        </if>
+        ORDER BY a.ADD_TIME DESC
+    </select>
+    <select id="countTrans" resultType="java.util.Map">
+        SELECT count(1) total, sum(monitor_success) success, sum(monitor_fail) fail
+        FROM K_SCRIPT_MONITOR
+    </select>
+    <select id="selectBySid" parameterType="java.lang.String"
+            resultType="com.jason.datacollection.entity.KScriptMonitor">
+        select *
+        from k_script_monitor
+        where MONITOR_SCRIPT_ID = #{id}
+    </select>
+</mapper>

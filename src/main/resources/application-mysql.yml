@@ -1,0 +1,6 @@
+spring:
+  datasource: # 数据库链接
+    url: jdbc:mysql://192.168.140.13:3306/data_govern?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8
+    username: root
+    password: root  #数据库名、用户名和密码改为自己的
+    driver-class-name: org.gjt.mm.mysql.Driver

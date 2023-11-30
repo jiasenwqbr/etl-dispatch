@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jason.datacollection.mapper.KScriptMapper">
+    <resultMap id="BaseResultMap" type="com.jason.datacollection.entity.KScript">
+        <id column="ID" jdbcType="VARCHAR" property="id"/>
+        <result column="CATEGORY_ID" jdbcType="VARCHAR" property="categoryId"/>
+        <result column="SCRIPT_NAME" jdbcType="VARCHAR" property="scriptName"/>
+        <result column="SCRIPT_DESCRIPTION" jdbcType="VARCHAR" property="scriptDescription"/>
+        <result column="SCRIPT_TYPE" jdbcType="VARCHAR" property="scriptType"/>
+        <result column="EXECUTE_TYPE" jdbcType="VARCHAR" property="executeType"/>
+        <result column="SCRIPT_PATH" jdbcType="VARCHAR" property="scriptPath"/>
+        <result column="SCRIPT_REPOSITORY_ID" jdbcType="VARCHAR" property="scriptRepositoryId"/>
+        <result column="SCRIPT_QUARTZ" jdbcType="VARCHAR" property="scriptQuartz"/>
+        <result column="SYNC_STRATEGY" jdbcType="VARCHAR" property="syncStrategy"/>
+        <result column="SCRIPT_LOG_LEVEL" jdbcType="TIMESTAMP" property="scriptLogLevel"/>
+        <result column="SCRIPT_STATUS" jdbcType="TIMESTAMP" property="scriptStatus"/>
+        <result column="ADD_TIME" jdbcType="TIMESTAMP" property="addTime"/>
+        <result column="ADD_USER" jdbcType="VARCHAR" property="addUser"/>
+        <result column="CIVIL_SERVANT" jdbcType="VARCHAR" property="editTime"/>
+        <result column="REFE_CIVIL_SERVANT" jdbcType="VARCHAR" property="editUser"/>
+        <result column="CREATE_TIME" jdbcType="TIMESTAMP" property="delFlag"/>
+        <result column="UPDATE_TIME" jdbcType="TIMESTAMP" property="scriptParams"/>
+        <association property="categoryName" select="selectCategoryBycid" column="CATEGORY_ID"/>
+        <association property="quartzDescription" select="selectQuatzByid" column="SCRIPT_QUARTZ"/>
+    </resultMap>
+
+    <resultMap id="TackCount" type="com.jason.datacollection.entity.KScript">
+        <result column="SCRIPT_TYPE" jdbcType="VARCHAR" property="scriptType"/>
+        <result column="NUM" jdbcType="VARCHAR" property="num"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        ID
+        ,CATEGORY_ID,SCRIPT_NAME,SCRIPT_DESCRIPTION,SCRIPT_TYPE,SCRIPT_PATH,SCRIPT_REPOSITORY_ID,SCRIPT_QUARTZ,SYNC_STRATEGY,SCRIPT_LOG_LEVEL,SCRIPT_STATUS,ADD_TIME,ADD_USER,EDIT_TIME,EDIT_USER,DEL_FLAG,SCRIPT_PARAMS,EXECUTE_TYPE
+    </sql>
+    <select id="selectAll" parameterType="com.jason.datacollection.entity.KScript" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from K_SCRIPT
+        where 1=1
+        <if test="scriptName != null">
+            and SCRIPT_NAME like concat(concat('%',#{scriptName}),'%')
+        </if>
+        <if test="categoryId != null">
+            and CATEGORY_ID=#{categoryId}
+        </if>
+        <if test="scriptStatus != null">
+            and SCRIPT_STATUS=#{scriptStatus}
+        </if>
+    </select>
+    <select id="selectCategoryBycid" parameterType="java.lang.String" resultType="java.lang.String">
+        select CATEGORY_NAME
+        from K_CATEGORY
+        where ID = #{id}
+    </select>
+    <select id="selectQuatzByid" parameterType="java.lang.String" resultType="java.lang.String">
+        select QUARTZ_DESCRIPTION
+        from K_QUARTZ
+        where ID = #{id}
+    </select>
+    <select id="selectBySid" parameterType="java.lang.String" resultType="com.jason.datacollection.entity.KScript">
+        select *
+        from K_SCRIPT
+        where ID = #{id}
+    </select>
+    <select id="taskCount" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select script_type, count(1) as num
+        from K_SCRIPT
+        group by script_type
+    </select>
+</mapper>

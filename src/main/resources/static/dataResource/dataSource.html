@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>数据源管理</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="../lib/layui_ext/dtree/dtree.css">
+    <link rel="stylesheet" href="../lib/layui_ext/dtree/font/dtreefont.css">
+    <link rel="stylesheet" href="css/dataMenuIndex.css">
+    <link rel="stylesheet" href="../css/com.css">
+    <style>
+        .layui-table-box {
+            overflow: unset !important;
+        }
+
+        .layui-table-view .layui-table {
+            width: 100% !important;
+        }
+        .layui-table-view .layui-table thead tr th{
+            background: #fafafa!important;
+        }
+        .layui-table-view .layui-table tbody tr{
+            background-color: #ffffff!important;
+        }
+        .layui-table-view .layui-table tbody tr:hover{
+            background-color: #e6f7ff !important;
+        }
+
+    </style>
+</head>
+<body>
+<div class="">
+    <div id="index" class="bodyDiv">
+        <div class="layui-inline layui-form">
+            <label class="layui-form-label">资源库</label>
+            <div class="layui-input-inline" style="float:left;">
+                <select name="datasourceId" id="datasourceId" lay-filter="datasourceId">
+                    <option value="">请选择</option>
+                </select>
+
+            </div>
+            <div style="float:left;margin-left: 10px;vertical-align: middle;margin-top: 3px"><button id="refresh" type="button" class="layui-btn">刷新</button></div>
+        </div>
+        <div style="margin-top: 20px">
+            <table class="layui-hide" id="menuIndexTable" lay-filter="menuIndexTable"></table>
+        </div>
+
+    </div>
+</div>
+<script type="text/html" id="modelTableBar">
+    <a class="caoZuoBtn" lay-event="edit">编辑</a>
+    <a class="caoZuoDelBtn" lay-event="delete">删除</a>
+</script>
+<div id="watchData_div" style="display: none">
+    <table id="columns"></table>
+</div>
+<!--</div>-->
+<!--    </div>-->
+<!--</div>-->
+
+<script src="../layui/layui.js" charset="utf-8"></script>
+<script src="../js/jquery-1.9.0.js"></script>
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="../js/common/request.js"></script>
+<script type="text/javascript" src="common/jquery/jquery.base64.js"></script>
+<script type="text/javascript" src="common/jquery/jquery.md5.js"></script>
+<script src="../lib/dist/xm-select.js"></script>
+
+<script>
+    var dtreeClickNode;
+    var kettleUrlNoKtrId;
+    var selectRow = undefined;
+    var forReNameMenu;
+    var xmSelectTreeEnity;
+    var xmClickNode;
+    var treeData;
+
+    layui.extend({
+        dtree: '../lib/layui_ext/dtree/dtree'
+    });
+    layui.use(['dtree', 'element', 'form', 'table', 'laypage'], function () {
+        // if (parent.strs) {
+        //     var code = parent.strs[1].split('=')[1]
+        //     parent.dynamicMenu(code)
+        // }
+
+        var dtree = layui.dtree,
+            element = layui.element;
+        form = layui.form;
+        table = layui.table;
+        layer = layui.layer;
+        steps = layui.steps;
+        var modelId = '',
+            modelName = '',
+            isLeaf = false,
+            isNull = false,
+            isAddMenu = true;
+        zyId = '';
+        var xmSelect = layui.xmSelect;
+        var backNodeId = getUrlParams('backNodeId');
+        var array = [];
+
+
+        $(document).ready(function () {
+            // renderMenuTree();
+            findRepList();
+        });
+
+        /**
+         * 加载资源库
+         */
+        function findRepList() {
+            var str = '<option value="">请选择资源库</option>';
+
+            $.ajax({
+                type: "get",
+                url: '/dataCollection/repository/findRepList',
+                //cache: false,
+                success: function (redata) {
+                    var repId = 0;
+                    for (var i = 0; i < redata.result.length; i++) {
+                        $("#datasourceId").append("<option value=\"" + redata.result[i].id + "\">" + redata.result[i].repName + "</option>");
+                        repId = redata.result[0].id;
+                    }
+                    if (repId != 0) {
+                        //$('#datasourceId option:selected').val(repId);
+                        $("#datasourceId").val(repId);
+                        form.render();
+                        //加载资源库中数据库连接
+                        renderTableTable(repId);
+                    }
+
+
+                    //重新渲染
+                    layui.form.render("select");
+                }
+            });
+        }
+
+        //监听下拉框改变
+        form.on('select(datasourceId)', function (data) {
+            renderTableTable(data.value);
+        })
+
+        //用于返回表中点击的行
+        table.on('row(menuIndexTable)', function (obj) {
+            selectRow = obj.data;
+            // $(".layui-table-body tr ").attr({"style":"background:#FFFFFF"});//其他tr恢复原样
+            // $(obj.tr.selector).attr({"style":"background:#99ff99"});//改变当前tr颜色
+        });
+
+
+        /**
+         * 渲染数据整合目录
+         */
+        function renderTableTable(repId) {
+            var tableTable = table.render({
+                elem: '#menuIndexTable',
+                // skin: 'row',
+                method: 'get',
+                url: '/dataCollection/repository/getDatabasesByRepId?repId=' + repId,
+                parseData: function (res) {
+                    return {
+                        code: '0',
+                        data: res.result,
+                        msg: res.msg,
+                        count: res.totalCount
+                    }
+                },
+                cols: [
+                    [
+                        {type: 'numbers', width: '3%', title: '序号'},
+                        {field: 'name', title: '连接名', width: '15%'},
+                        {field: 'hostname', title: '数据库IP', width: '15%'},
+                        {field: 'port', title: '端口', width: '10%'},
+                        {field: 'username', title: '用户名', width: '10%'},
+                        {field: 'password', title: '密码', width: '10%'},
+                        {field: 'type', title: '类型', width: '5%'},
+                        // {title: '操作', width: 140, toolbar: '#modelTableBar'}
+                    ]
+                ],
+                page: true,
+                even: true,
+                page: {
+                    layout: ['prev', 'page', 'next', 'skip', 'count', 'limit'],
+                    groups: 1,
+                    first: false,
+                    last: false
+                },
+                request: {
+                    pageName: 'page',
+                    limitName: 'pageSize'
+                },
+                done: function (res, curr, count) { // 表格渲染完成之后的回调
+                    let data = res.data == null ? [] : res.data;
+                }
+            });
+        }
+
+        //删除
+        $('#deleteMenu').click(function () {
+            var msg = '确定删除' + dtreeClickNode.context + '节点吗？';
+            layer.confirm(msg, {
+                title: '提示'
+            }, function (index) {
+                var dataId;
+                for (var x in treeData) {
+                    if (treeData[x].categoryId == dtreeClickNode.nodeId) {
+                        dataId = treeData[x].id;
+                    }
+                }
+                ;
+                $.ajax({
+                    type: "get",
+                    url: "/dataCollection/dicategory/delete?id=" + dataId,
+                    dataType: 'json',
+                    cache: false,
+                    contentType: "application/json",
+                    success: function (redata) {
+                        if (redata.code === '0000') {
+                            layer.msg(redata.message, {icon: 1});
+                            renderMenuTree(xmClickNode.id);
+                        } else if (redata.code === '9999') {
+                            layer.msg(redata.message, {icon: 2});
+                        }
+                        layer.close(index);
+                    }
+                });
+            });
+        })
+
+
+        /**
+         * 新建数据
+         */
+        $('#addData').click(function () {
+            if (!isLeaf) {
+                layer.alert("该节点禁止添加元数据");
+            } else {
+                var addData = layer.open({
+                    title: '新增数据',
+                    id: 'addDataLayer',
+                    type: 2,
+                    shade: 0.2,
+                    btn: ['保存', '关闭'],
+                    // resize: false,
+                    shadeClose: true,
+                    area: ['40%', '60%'],
+                    content: './dataMenuAddData.html?modelId=' + modelId + '&modelName=' + modelName,
+                    success: function (layero) {
+                    },
+                    yes: function (index) {
+                        //变灰禁用按钮
+                        $('.layui-layer-iframe .layui-layer-content iframe')[0].contentWindow.postMessage('submit', '*');
+                        // $('#layui-layer-iframe'+index).contentWindow.postMessage('submit', '*');
+
+                        window.addEventListener('message', function (event) {
+                            var eventData = event.data;
+                            var res = eventData.split('-');
+                            if (res[0] === 'success') {
+                                layer.alert(res[1], function (index) {
+                                    renderTableTable(modelId);
+                                    // table.reload('taskConfigIndexTable',{});
+                                    layer.close(index);
+                                });
+                                layer.close(index);
+                            } else if (res[0] === 'error') {
+                                layer.alert("新增数据失败，请重试", function (index) {
+                                    layer.close(index);
+                                });
+                            }
+                        });
+                    }
+                });
+                $(window).on("resize", function () {
+                    layer.full(addData);
+                });
+            }
+
+        });
+
+        /**
+         * 刷新
+         */
+        $('#refresh').click(function () {
+            var options = $("#datasourceId option:selected");  //获取选中的项
+            renderTableTable(options.val());
+        });
+
+
+        /**
+         * 监听搜索
+         */
+        form.on('submit(data-search-btn)', function (data) {
+            renderMenuTree(data.field.keywords);
+            return false;
+        });
+
+        /**
+         * 监听操作
+         */
+        table.on('tool(menuIndexTable)', function (obj) {
+            var data = obj.data;
+            var event = obj.event;
+            console.log("1111111111111111111111111111"+JSON.stringify(data))
+            if (event === 'edit') {
+                location.href = "./editDataSource.html?dbId=" + data.id;
+            } else if (event === 'delete') {
+                //-------删除脚本----------------
+                layer.confirm('确定删除此条数据?', {
+                    title: '提示'
+                }, function (index) {
+                    $.ajax({
+                        type: "delete",
+                        url: "/dataCollection/discript/delete?id=" + data.id + '&type=' + data.type,
+                        dataType: 'json',
+                        cache: false,
+                        contentType: "application/json",
+                        success: function (redata) {
+                            if (redata.code === '0000') {
+                                layer.msg(redata.message, {icon: 1});
+                            } else if (redata.code === '9999') {
+                                layer.msg(redata.message, {icon: 2});
+                            }
+                            layer.close(index);
+                            renderTableTable(modelId);
+                        }
+                    });
+                });
+            }
+        });
+    });
+    window.getUrlParams = function (key) {
+        //获取url参数
+        var reg = new RegExp("(^|&)" + key + "=([^&]*)(&|$)", "i");
+        var url = decodeURI(window.location.search)
+        var r = url.substr(1).match(reg);
+        if (r != null) return unescape(r[2]);
+        return null;
+    }
+
+
+</script>
+
+</body>
+</html>

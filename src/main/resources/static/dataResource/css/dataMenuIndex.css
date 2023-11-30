@@ -1,0 +1,62 @@
+@import url("../../layui/css/layui.css");
+@import url("../../css/common.css");
+
+.layui-side {
+    width: 262px;
+}
+
+.layui-body {
+    left: 262px;
+}
+.layuiBodyHeader button-icon{
+    float: right;
+    height: 33px;
+    position: absolute;
+    right: 1px;
+    border: #ffffff;
+    line-height: 33px;
+    top: 1px;
+}
+.layuiBodyHeader icon:hover{
+    color: #2667DF;
+}
+/*.layui-table tbody tr:nth-child(odd) {*/
+/*background-color: #FFFFFF;*/
+/*}*/
+/*.layui-table tbody tr:nth-child(even) {*/
+/*background-color: #F8F9FB;*/
+/*}*/
+.layui-layer-btn .layui-layer-btn0{
+    border-color: #2667df!important; ;
+    background-color: #2667df!important;
+}
+.layui-layer-btn .layui-layer-btn0 .layui-btn-disabled{
+    border: 1px solid #e6e6e6!important;
+    background-color: #FBFBFB!important;
+    color: #C9C9C9!important;
+    cursor: not-allowed!important;
+    opacity: 1!important;
+}
+
+.layui-btn-xs{
+    font-size: 14px;
+}
+/*.layui-btn-delete:hover {*/
+/*    border: 1px solid #2667DF;*/
+/*    color: #2667DF*/
+/*}*/
+.layui-input:hover {
+    border: 1px solid #2667DF !important;
+    color: #2667DF !important;
+}
+.layui-btn+.layui-btn{
+    margin-left: unset!important;
+}
+/*给取消按钮做触摸边框颜色改变的效果*/
+.layui-layer-btn1:hover {
+    border: 1px solid #2667DF !important;
+    color: #2667DF !important;
+}
+.xm-body{
+    bottom: auto!important;
+}

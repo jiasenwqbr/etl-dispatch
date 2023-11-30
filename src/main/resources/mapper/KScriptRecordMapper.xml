@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jason.datacollection.mapper.KScriptRecordMapper">
+    <resultMap id="BaseResultMap" type="com.jason.datacollection.entity.KScriptRecord">
+        <result column="ID" jdbcType="VARCHAR" property="id"/>
+        <result column="RECORD_TRANS_ID" jdbcType="VARCHAR" property="recordTransId"/>
+        <result column="START_TIME" jdbcType="TIMESTAMP" property="startTime"/>
+        <result column="STOP_TIME" jdbcType="TIMESTAMP" property="stopTime"/>
+        <result column="RECORD_STATUS" jdbcType="DECIMAL" property="recordStatus"/>
+        <result column="LOG_FILE_PATH" jdbcType="OTHER" property="logFilePath"/>
+        <result column="ADD_TIME" jdbcType="TIMESTAMP" property="addTime"/>
+        <result column="ADD_USER" jdbcType="VARCHAR" property="addUser"/>
+        <result column="EDIT_TIME" jdbcType="TIMESTAMP" property="editTime"/>
+        <result column="EDIT_USER" jdbcType="VARCHAR" property="editUser"/>
+        <result column="DEL_FLAG" jdbcType="DECIMAL" property="delFlag"/>
+        <result column="CATEGORY_ID" jdbcType="VARCHAR" property="categoryId"/>
+        <result column="SCRIPT_NAME" jdbcType="VARCHAR" property="scriptName"/>
+    </resultMap>
+
+    <resultMap id="ErrorResultMap" type="com.jason.datacollection.entity.KScriptRecord">
+        <result column="ID" jdbcType="VARCHAR" property="id"/>
+        <result column="RECORD_SCRIPT_ID" jdbcType="VARCHAR" property="recordScriptId"/>
+        <result column="SCRIPT_NAME" jdbcType="TIMESTAMP" property="scriptName"/>
+        <result column="SCRIPT_DESCRIPTION" jdbcType="TIMESTAMP" property="scriptDescription"/>
+        <result column="CATEGORY_NAME" jdbcType="DECIMAL" property="categoryName"/>
+        <result column="STOP_TIME" jdbcType="OTHER" property="stopTime"/>
+        <result column="RECORD_STATUS" jdbcType="TIMESTAMP" property="recordStatus"/>
+    </resultMap>
+    <select id="selectAllBySid" parameterType="com.jason.datacollection.entity.KScriptRecord"
+            resultMap="BaseResultMap">
+        select r.*,s.SCRIPT_NAME from K_SCRIPT_RECORD r
+        left join K_SCRIPT s
+        on s.id = r.RECORD_SCRIPT_ID
+        where 1=1
+        <if test="id != null">
+            and RECORD_TRANS_ID=#{id}
+        </if>
+        <if test="recordScriptId != null">
+            and RECORD_SCRIPT_ID=#{recordScriptId}
+        </if>
+        <if test="recordStatus != null">
+            and RECORD_STATUS=#{recordStatus}
+        </if>
+        ORDER BY START_TIME DESC
+    </select>
+
+    <select id="selectErrorList" parameterType="com.jason.datacollection.entity.KScriptRecord"
+            resultMap="ErrorResultMap">
+        SELECT a.*, b.SCRIPT_NAME, c.category_name, b.SCRIPT_DESCRIPTION
+        FROM K_SCRIPT_RECORD a
+        INNER JOIN K_SCRIPT b ON a.RECORD_SCRIPT_ID = b.id
+        LEFT JOIN k_category c ON b.category_id = c.id
+        WHERE 1 = 1
+        AND A.RECORD_STATUS = 0
+        <if test="categoryId != null and categoryId!=''">
+            AND b.category_id = #{categoryId}
+        </if>
+        order by a.stop_time desc
+    </select>
+
+    <select id="get7DayScriptRunstatusForMysql" resultType="java.util.HashMap">
+        SELECT
+        date_format( r.stop_time, '%Y-%m-%d' ) as date,
+        sum( CASE WHEN s.SCRIPT_TYPE = 0 THEN 0 ELSE 1 END ) AS transNum,
+        sum( CASE WHEN s.SCRIPT_TYPE = 1 THEN 0 ELSE 1 END ) AS jobNum
+        FROM
+        k_script_record r
+        LEFT JOIN k_script s ON r.RECORD_SCRIPT_ID = s.id
+        WHERE
+        DATE_SUB( CURDATE(), INTERVAL 7 DAY ) &lt;= r.stop_time
+        GROUP BY
+        date_format( r.stop_time, '%Y-%m-%d' )
+        ORDER BY
+        date_format( r.stop_time, '%Y-%m-%d' ) ASC
+    </select>
+    <!--<insert id="insert" parameterType="KScriptRecord">-->
+    <!--insert into K_SCRIPT_RECORD (ID, RECORD_TRANS_ID, START_TIME,-->
+    <!--STOP_TIME, RECORD_STATUS, LOG_FILE_PATH,-->
+    <!--ADD_TIME, ADD_USER, EDIT_TIME,-->
+    <!--EDIT_USER, DEL_FLAG, CATEGORY_ID-->
+    <!--)-->
+    <!--values (#{id,jdbcType=VARCHAR}, #{recordTransId,jdbcType=VARCHAR}, #{startTime,jdbcType=TIMESTAMP},-->
+    <!--#{stopTime,jdbcType=TIMESTAMP}, #{recordStatus,jdbcType=DECIMAL}, #{logFilePath,jdbcType=OTHER},-->
+    <!--#{addTime,jdbcType=TIMESTAMP}, #{addUser,jdbcType=VARCHAR}, #{editTime,jdbcType=TIMESTAMP},-->
+    <!--#{editUser,jdbcType=VARCHAR}, #{delFlag,jdbcType=DECIMAL}, #{categoryId,jdbcType=VARCHAR}-->
+    <!--)-->
+    <!--</insert>-->
+    <!--<insert id="insertSelective" parameterType="KScriptRecord">-->
+    <!--insert into K_SCRIPT_RECORD-->
+    <!--<trim prefix="(" suffix=")" suffixOverrides=",">-->
+    <!--<if test="id != null">-->
+    <!--ID,-->
+    <!--</if>-->
+    <!--<if test="recordTransId != null">-->
+    <!--RECORD_TRANS_ID,-->
+    <!--</if>-->
+    <!--<if test="startTime != null">-->
+    <!--START_TIME,-->
+    <!--</if>-->
+    <!--<if test="stopTime != null">-->
+    <!--STOP_TIME,-->
+    <!--</if>-->
+    <!--<if test="recordStatus != null">-->
+    <!--RECORD_STATUS,-->
+    <!--</if>-->
+    <!--<if test="logFilePath != null">-->
+    <!--LOG_FILE_PATH,-->
+    <!--</if>-->
+    <!--<if test="addTime != null">-->
+    <!--ADD_TIME,-->
+    <!--</if>-->
+    <!--<if test="addUser != null">-->
+    <!--ADD_USER,-->
+    <!--</if>-->
+    <!--<if test="editTime != null">-->
+    <!--EDIT_TIME,-->
+    <!--</if>-->
+    <!--<if test="editUser != null">-->
+    <!--EDIT_USER,-->
+    <!--</if>-->
+    <!--<if test="delFlag != null">-->
+    <!--DEL_FLAG,-->
+    <!--</if>-->
+    <!--<if test="categoryId != null">-->
+    <!--CATEGORY_ID,-->
+    <!--</if>-->
+    <!--</trim>-->
+    <!--<trim prefix="values (" suffix=")" suffixOverrides=",">-->
+    <!--<if test="id != null">-->
+    <!--#{id,jdbcType=VARCHAR},-->
+    <!--</if>-->
+    <!--<if test="recordTransId != null">-->
+    <!--#{recordTransId,jdbcType=VARCHAR},-->
+    <!--</if>-->
+    <!--<if test="startTime != null">-->
+    <!--#{startTime,jdbcType=TIMESTAMP},-->
+    <!--</if>-->
+    <!--<if test="stopTime != null">-->
+    <!--#{stopTime,jdbcType=TIMESTAMP},-->
+    <!--</if>-->
+    <!--<if test="recordStatus != null">-->
+    <!--#{recordStatus,jdbcType=DECIMAL},-->
+    <!--</if>-->
+    <!--<if test="logFilePath != null">-->
+    <!--#{logFilePath,jdbcType=OTHER},-->
+    <!--</if>-->
+    <!--<if test="addTime != null">-->
+    <!--#{addTime,jdbcType=TIMESTAMP},-->
+    <!--</if>-->
+    <!--<if test="addUser != null">-->
+    <!--#{addUser,jdbcType=VARCHAR},-->
+    <!--</if>-->
+    <!--<if test="editTime != null">-->
+    <!--#{editTime,jdbcType=TIMESTAMP},-->
+    <!--</if>-->
+    <!--<if test="editUser != null">-->
+    <!--#{editUser,jdbcType=VARCHAR},-->
+    <!--</if>-->
+    <!--<if test="delFlag != null">-->
+    <!--#{delFlag,jdbcType=DECIMAL},-->
+    <!--</if>-->
+    <!--<if test="categoryId != null">-->
+    <!--#{categoryId,jdbcType=VARCHAR},-->
+    <!--</if>-->
+    <!--</trim>-->
+    <!--</insert>-->
+</mapper>

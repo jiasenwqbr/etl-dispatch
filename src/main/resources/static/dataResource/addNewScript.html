@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>新增脚本</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../layui/css/layui.css" media="all">
+	<link rel="stylesheet" href="../css/com.css">
+	<link rel="stylesheet" href="../css/common.css">
+</head>
+
+<body style="padding: 10px;">
+<form class="layui-form" lay-filter="applyInfo" action="">
+                <div id="script" class="layui-form-item"  style="display: none">
+                    <label class="layui-form-label">
+                        <i class="redstar">*</i>脚本名称</label>
+                    <div class="layui-input-block">
+                        <input class="layui-input" required lay-verify="required" id="scriptName" name="scriptName"
+                               autocomplete="off"  onBlur="verifyName(this.value,this.id)">
+                    </div>
+                </div>
+                <div id="menu" class="layui-form-item" style="display: none">
+                    <label class="layui-form-label">
+                        <i class="redstar">*</i>节点名称</label>
+                    <div class="layui-input-block">
+                        <input class="layui-input" required lay-verify="required" id="menuName" name="menuName"
+                               autocomplete="off"  onBlur="verifyName(this.value,this.id)">
+                    </div>
+                </div>
+                <div id="st" class="layui-form-item"  style="display: none">
+                    <label class="layui-form-label">脚本类型</label>
+                    <div class="layui-input-block">
+                        <select class="layui-select" id="scriptType" name="scriptType" lay-filter="scriptType">
+                            <option value="1" selected>转换</option>
+                            <option value="0">作业</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+
+<script src="../layui/layui.js" charset="utf-8"></script>
+<script src="../js/jquery-1.9.0.js"></script>
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="../js/common/request.js"></script>
+
+<script>
+    var name = '';
+    layui.use(['form', 'table','layer'], function () {
+        let form = layui.form;
+        //页面加载函数
+        $(document).ready(function () {
+            requestParameter();
+        })
+
+        function requestParameter() {
+            let url = window.location.search;
+            if (url != '') {
+                name = decodeURIComponent(url.split('&')[0].split('=')[1]);
+                let flag = url.split('&')[1].split('=')[1];
+                if(flag == 'true'){
+                    $("#menu").show();
+                    $("#menuName").val(name);
+                }else if(flag == 'false'){
+                    $("#script").show();
+                    $("#scriptName").val(name);
+                }
+            }else{
+                $("#script").show();
+                $("#st").show();
+            }
+        }
+        window.verifyName = function(value,id){
+            if(value == ''){
+                layer.msg("名称不可为空");
+            }
+        }
+    })
+
+</script>
+
+</body>
+
+</html>

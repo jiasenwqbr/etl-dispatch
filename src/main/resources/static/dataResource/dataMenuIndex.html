@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>资源库整合</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="../layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="../lib/layui_ext/dtree/dtree.css">
+    <link rel="stylesheet" href="../lib/layui_ext/dtree/font/dtreefont.css">
+    <link rel="stylesheet" href="css/dataMenuIndex.css">
+    <link rel="stylesheet" href="../css/com.css">
+    <style>
+        /*.layui-table-box {
+            overflow: unset !important;
+        }
+
+        .layui-table-view .layui-table {
+            width: 100% !important;
+        }*/
+    </style>
+</head>
+<body>
+<div class="layui-side" style="border: 1px solid #e7eaef;background:#F5F6FA">
+    <div class="layuiBodyHeader72">
+        <label class="layui-form-label" style="text-align: unset">
+            资源库</label>
+        <div class="xm-select-demo" id="datasourceId">
+            <!--<select class="layui-select" id="datasourceId" name="targetDatasourceId"-->
+            <!--lay-filter="demo" >-->
+            <!--<option value="">请选择资源库</option>-->
+            <!--</select>-->
+        </div>
+        <button id="addMenu" type="button" class="layui-btn">
+            <i class="layui-icon layui-icon-addition"></i>
+        </button>
+    </div>
+    <div class="layui-row">
+        <ul id="ODSmenuTree" class="dtree"></ul>
+    </div>
+</div>
+<div class="layui-body">
+    <div id="index" class="bodyDiv">
+        <div class="layuiBodyAnNiuHeader1">
+            <div class="layui-btn-container">
+                <button id="addScript" type="button" class="layui-btn">新增脚本</button>
+                <button id="reNameScript" type="button" class="layui-btn">重命名脚本</button>
+                <button id="refresh" type="button" class="layui-btn">刷新</button>
+            </div>
+        </div>
+        <table class="layui-hide" id="menuIndexTable" lay-filter="menuIndexTable"></table>
+    </div>
+</div>
+<script type="text/html" id="modelTableBar">
+    <a class="caoZuoBtn" lay-event="edit">编辑</a>
+    <a class="caoZuoBtn caoZuoJuLiBtn3" lay-event="move">移动</a>
+    <a class="caoZuoDelBtn" lay-event="delete">删除</a>
+</script>
+<div id="watchData_div" style="display: none">
+    <table id="columns"></table>
+</div>
+<!--</div>-->
+<!--    </div>-->
+<!--</div>-->
+
+<script src="../layui/layui.js" charset="utf-8"></script>
+<script src="../js/jquery-1.9.0.js"></script>
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="../js/common/request.js"></script>
+<script type="text/javascript" src="common/jquery/jquery.base64.js"></script>
+<script type="text/javascript" src="common/jquery/jquery.md5.js"></script>
+<script src="../lib/dist/xm-select.js"></script>
+
+<script>
+    var dtreeClickNode;
+    var kettleUrlNoKtrId;
+    var selectRow = undefined;
+    var forReNameMenu;
+    var xmSelectTreeEnity;
+    var xmClickNode;
+    var treeData;
+
+    layui.extend({
+        dtree: '../lib/layui_ext/dtree/dtree'
+    });
+    layui.use(['dtree', 'element', 'form', 'table', 'laypage'], function () {
+        // if (parent.strs) {
+        //     var code = parent.strs[1].split('=')[1]
+        //     parent.dynamicMenu(code)
+        // }
+
+        var dtree = layui.dtree,
+            element = layui.element;
+        form = layui.form;
+        table = layui.table;
+        layer = layui.layer;
+        steps = layui.steps;
+        var modelId = '',
+            modelName = '',
+            isLeaf = false,
+            isNull = false,
+            isAddMenu = true;
+        zyId = '';
+        var xmSelect = layui.xmSelect;
+        var backNodeId = getUrlParams('backNodeId');
+        var array = [];
+        // var http = 'http://172.17.5.220:9077';
+
+
+        $(document).ready(function () {
+            // renderMenuTree();
+            findRepList();
+        });
+
+        /**
+         * 加载资源库
+         */
+        function findRepList() {
+            var str = '<option value="">请选择资源库</option>';
+            $.ajax({
+                type: "get",
+                url: '/dataCollection/repository/findRepList',
+                //cache: false,
+                success: function (redata) {
+                    redata = redata.result == null ? [] : redata.result;
+                    var test = toTree2(redata);
+                    test[0].selected = true;
+                    xmClickNode = test[0];
+                    //渲染多选
+                    renderMenuTree(test[0].id);
+                    getSpoonUrl(test[0].id);
+                    xmSelectTreeEnity = xmSelect.render({
+                        el: '#datasourceId',
+                        data: test,
+                        radio: true,
+                        toolbar: {show: false},
+                        clickClose: true,
+                        on: function (data) {
+                            xmClickNode = data.change[0];
+                            zyId = data.arr.length == 0 ? data.change[0].id : data.arr[0].id;
+                            getSpoonUrl(zyId);
+                            renderMenuTree(zyId)
+                        },
+                        height: '300px',
+                    })
+                }
+            });
+        }
+
+        function getSpoonUrl(repId) {
+            $.ajax({
+                type: "get",
+                url: "/dataCollection/dicategory/findRepositoryById?id=" + repId,
+                cache: false,
+                success: function (redata) {
+                    let kettleInfo = redata.result;
+                    //?rep=kettle_rep&KUser=admin&pass=0717&trans=273
+                    kettleUrlNoKtrId = kettleInfo.url + '?rep=' + kettleInfo.repName + '&user='
+                        + kettleInfo.repUsername + '&pass=' + kettleInfo.repPassword;
+                }
+            });
+        }
+
+        /**
+         *  渲染数据整合目录树
+         */
+        function renderMenuTree(id) {
+            var url = "/dataCollection/dicategory/findDiCateryByRep?id=" + id;
+            $.ajax({
+                type: "get",
+                contentType: "application/json;charset=UTF-8",
+                url: url,
+                success: function (result) {
+                    var test = toTree(result.result);
+                    var a = xmSelectTreeEnity.getValue();
+                    treeData = test;
+                    var dtreeNodeId;
+                    for (var x in test) {
+                        if (test[x].repId == a[0].id) {
+                            dtreeNodeId = test[x].categoryId;
+                            break;
+                        }
+                    }
+
+                    //获取树所有节点id
+                    var menuTree = dtree.render({
+                        elem: "#ODSmenuTree",
+                        data: test,
+                        type: 'load',
+                        toolbar: true,
+                        toolbarWay: "follow", //follow
+                        toolbarShow: [],
+                        toolbarExt: [
+                            {
+                                toolbarId: "testEdit",
+                                icon: "dtree-icon-bianji",
+                                title: "编辑节点",
+                                handler: function (node, $div) {
+                                    dtreeClickNode = node;
+                                    var reNameMenu22 = layer.open({
+                                        title: '重命名节点',
+                                        id: '',
+                                        type: 2,
+                                        shade: 0.2,
+                                        btn: ['保存', '取消'],
+                                        area: ['30%', '40%'],
+                                        content: './addNewScript.html?oldName=' + dtreeClickNode.context + '&isMenu=true',
+                                        yes: function (index, layero) {
+                                            var body = layer.getChildFrame('body', index);
+                                            let updateData = {
+                                                name: body.find("#menuName").val(),
+                                                dirId: dtreeClickNode.nodeId,
+                                                repId: xmClickNode.id
+                                            }
+                                            $.ajax({
+                                                type: "post",
+                                                url: "/dataCollection/dicategory/update",
+                                                dataType: 'json',
+                                                cache: false,
+                                                contentType: "application/json",
+                                                data: JSON.stringify(updateData),
+                                                success: function (redata) {
+                                                    if (redata.code == '0000') {
+                                                        layer.msg('修改节点名称成功');
+                                                        renderMenuTree(updateData.repId);
+                                                        layer.close(index);
+                                                    } else {
+                                                        layer.msg('修改节点名称失败');
+                                                    }
+                                                }
+                                            });
+                                            layer.close(index);
+                                        }
+                                    });
+                                }
+                            },
+                            {
+                                toolbarId: "testDel",
+                                icon: "dtree-icon-roundclose",
+                                title: "删除节点",
+                                handler: function (node, $div) {
+                                    dtreeClickNode = node;
+                                    var msg = '确定删除' + dtreeClickNode.context + '节点吗？';
+                                    layer.confirm(msg, {
+                                        title: '提示'
+                                    }, function (index) {
+                                        $.ajax({
+                                            type: "get",
+                                            url: "/dataCollection/dicategory/delete?dirId=" + dtreeClickNode.nodeId + '&repId=' + xmClickNode.id,
+                                            dataType: 'json',
+                                            cache: false,
+                                            contentType: "application/json",
+                                            success: function (redata) {
+                                                if (redata.code === '0000') {
+                                                    layer.msg(redata.message, {icon: 1});
+                                                    renderMenuTree(xmClickNode.id);
+                                                } else if (redata.code === '9999') {
+                                                    layer.msg(redata.message, {icon: 2});
+                                                }
+                                                layer.close(index);
+                                            }
+                                        });
+                                    });
+                                }
+                            }
+                        ],
+                        toolbarFun: {
+                            loadToolbarBefore: function (buttons, param, $div) {
+                                // console.log(buttons);
+                                // console.log(param);
+                                // console.log($div);
+                                if (param.basicData == '1') {
+                                    buttons.testEdit = "";  // 取消编辑功能
+                                }
+                                ;
+                                return buttons; // 将按钮对象返回
+                            }
+                        },
+
+                        dataStyle: "layuiStyle",
+                        dataFormat: "list",
+                        initLevel: "1",
+                        response: {
+                            message: "message",
+                            statusName: "code", //返回标识（必填）
+                            statusCode: '0000',
+                            rootName: "result",
+                            treeId: "id",
+                            parentId: "pid",
+                            title: 'text',
+                            childName: "children"
+                        },
+                        defaultRequest: {
+                            id: "id",
+                            parentId: "pid",
+                            title: 'text',
+                            // title: 'id',
+                            childName: 'children'
+                        },
+                        done: function (data, obj, first) {
+                            $('.dtree-toolbar-fixed a').find('i.dtree-icon-bianji').addClass(
+                                'layui-icon');
+                            $('.dtree-toolbar-fixed a').find('i.dtree-icon-bianji').addClass(
+                                'layui-icon-edit');
+                            $('.dtree-toolbar-fixed a').find('i.dtree-icon-roundclose').addClass(
+                                'layui-icon');
+                            $('.dtree-toolbar-fixed a').find('i.dtree-icon-roundclose').addClass(
+                                'layui-icon-delete');
+                            if (first) {
+                                modelId = id;
+                                //renderTableTable(modelId);
+                                let firstNodeId = data[0].id;
+                                if (modelId !== '') {
+                                    firstNodeId = modelId;
+                                } else if (backNodeId) {
+                                    firstNodeId = backNodeId;
+                                }
+                                //默认点击
+                                let parmtClick = dtree.click(menuTree, firstNodeId);
+                                $(document).unbind("keydown");
+                                $(document).keydown(function (event) {
+                                    let Key = event.keyCode;
+                                    if (Key == 13) {
+                                        var value = $("#keywords").val();
+                                        if (value) {
+                                            var flag = menuTree.searchNode(value); // 内置方法查找节点
+                                            if (!flag) {
+                                                window.parent.layer.msg("该名称节点不存在！", {
+                                                    icon: 5
+                                                });
+                                            }
+                                        } else {
+                                            menuTree.menubarMethod().refreshTree(); // 内置方法刷新树
+                                        }
+                                    }
+                                });
+                            } else {
+                                if (dtreeClickNode !== undefined) {
+                                    dtree.click(menuTree, dtreeClickNode.nodeId);
+                                }
+                            }
+                        }
+                    });
+                    dtree.on("node(ODSmenuTree)", function (obj) {
+                        selectRow = undefined;
+                        dtreeClickNode = obj.param;
+                        forReNameMenu = obj;
+                        var param = obj.param;
+                        var parentParam = obj.parentParam;
+                        modelName = param.context;
+                        modelId = param.nodeId;
+                        isLeaf = param.leaf;
+                        var level = param.level;
+                        $('#index').removeClass('layui-hide');
+                        $('#tableInfo').addClass('layui-hide');
+                        //isAddMenu = true;
+                        if (param.basicData == '1') {
+                            //默认目录是不允许编辑的，这里需要隐藏重命名按钮unfinished
+                            $("#reNameMenu").hide();
+                        } else {
+                            $("#reNameMenu").show();
+                        }
+                        renderTableTable(modelId);
+                    });
+                },
+                //请求失败，包含具体的错误信息
+                error: function (e) {
+                }
+            });
+        }
+
+        //用于返回表中点击的行
+        table.on('row(menuIndexTable)', function (obj) {
+            selectRow = obj.data;
+            // $(".layui-table-body tr ").attr({"style":"background:#FFFFFF"});//其他tr恢复原样
+            // $(obj.tr.selector).attr({"style":"background:#99ff99"});//改变当前tr颜色
+        });
+
+
+        /**
+         * 渲染数据整合目录
+         */
+        function renderTableTable(modelId) {
+            selectRow = undefined;
+            let repId;
+            if (xmClickNode != undefined) {
+                repId = xmClickNode.id;
+            } else {
+                repId = xmSelectTreeEnity.getValue()[0].id;
+            }
+            var tableTable = table.render({
+                elem: '#menuIndexTable',
+                // skin: 'row',
+                method: 'get',
+                url: '/dataCollection/discript/findDiScriptById?id=' + modelId + '&repId=' + repId,
+                parseData: function (res) {
+                    return {
+                        code: '0',
+                        data: res.result,
+                        msg: res.msg,
+                        count: res.totalCount
+                    }
+                },
+                cols: [
+                    [
+                        {type: 'numbers', width: '3%', title: '序号'},
+                        {field: 'text', title: '脚本名称', width: '15%'},
+                        {field: 'extra', title: '脚本路径', width: '45%'},
+                        {
+                            title: '类型', width: '10%', templet: function (d) {
+                                var scriptType = "作业";
+                                if (d.id.indexOf("job") == "-1") {
+                                    scriptType = "转换";
+                                }
+                                return scriptType;
+                            }
+                        },
+                        {title: '操作', width: '16%', toolbar: '#modelTableBar'}
+                    ]
+                ],
+                page: true,
+                even: true,
+                page: {
+                    layout: ['prev', 'page', 'next', 'skip', 'count', 'limit'],
+                    groups: 1,
+                    first: false,
+                    last: false
+                },
+                request: {
+                    pageName: 'page',
+                    limitName: 'pageSize'
+                },
+                done: function (res, curr, count) { // 表格渲染完成之后的回调
+                    let data = res.data == null ? [] : res.data;
+                }
+            });
+        }
+
+        /**
+         * 新建目录
+         */
+        $('#addMenu').click(function () {
+            if (isAddMenu) {
+                var addMenu = layer.open({
+                    title: '新增目录',
+                    id: 'addMenuLayer',
+                    type: 2,
+                    shade: 0.2,
+                    btn: ['保存', '关闭'],
+                    // resize: false,
+                    shadeClose: true,
+                    area: ['30%', '40%'],
+                    content: './addNewScript.html?oldName=&isMenu=true',
+                    yes: function (index, layero) {
+                        var body = layer.getChildFrame('body', index);
+                        var dirId = null;
+                        if (dtreeClickNode) {
+                            dirId = dtreeClickNode.nodeId;
+                        }
+                        var newMenu = {
+                            dirId: dirId,
+                            name: body.find("#menuName").val(),
+                            repId: xmClickNode.id
+                        }
+                        if (newMenu.name && newMenu.name != null) {
+                            $.ajax({
+                                type: "post",
+                                url: "/dataCollection/dicategory/add",
+                                dataType: 'json',
+                                cache: false,
+                                contentType: "application/json",
+                                data: JSON.stringify(newMenu),
+                                success: function (redata) {
+                                    if (redata.code == '0000') {
+                                        layer.msg('新增目录成功');
+                                        renderMenuTree(newMenu.repId);
+                                        layer.close(index);
+                                    } else if ((redata.code == '500')) {
+                                        layer.msg(redata.message);
+                                    } else {
+                                        layer.msg(redata.message);
+                                    }
+                                }
+                            });
+                            layer.close(index);
+                        } else {
+                            layer.alert("节点名称不能为空");
+                            return false;
+                        }
+                    }
+                });
+                $(window).on("resize", function () {
+                    layer.full(addMenu);
+                });
+            } else if (!isAddMenu) {
+                layer.alert("该节点不支持扩展子级");
+            }
+        });
+
+        //新增脚本
+        $('#addScript').click(function () {
+            var addScript = layer.open({
+                title: '新增脚本',
+                id: 'addNewScript',
+                type: 2,
+                shade: 0.2,
+                btn: ['保存', '取消'],
+                area: ['400px', '230px'],
+                content: './addNewScript.html',
+                yes: function (index, layero) {
+                    var body = layer.getChildFrame('body', index);
+                    var dataId;
+                    if (!dtreeClickNode) {
+                        layer.msg("请选择目录！", {icon: 0});
+                        return;
+                    }
+                    for (var x in treeData) {
+                        if (treeData[x].id == dtreeClickNode.nodeId) {
+                            dataId = treeData[x].id;
+                        }
+                    }
+                    var sc = {
+                        name: body.find("#scriptName").val(),
+                        dirId: dataId,
+                        type: body.find("#scriptType").val(),
+                        repId: xmClickNode.id
+                    }
+                    $.ajax({
+                        type: "post",
+                        url: "/dataCollection/discript/add",
+                        dataType: 'json',
+                        cache: false,
+                        contentType: "application/json",
+                        data: JSON.stringify(sc),
+                        success: function (redata) {
+                            if (redata.code == '0000') {
+                                renderTableTable(dtreeClickNode.nodeId);
+                                layer.msg(redata.message, {
+                                    icon: 0,
+                                    time: 1000
+                                }, function () {
+                                    openWebSpoon(kettleUrlNoKtrId,redata.result.id,sc.type);
+                                });
+                            } else if ((redata.code == '500')) {
+                                layer.msg(redata.message, {icon: 0});
+                            } else {
+                                layer.msg(redata.message, {
+                                    icon: 0,
+                                    time: 2000 //2秒关闭（如果不配置，默认是3秒）
+                                }, function () {
+                                    openWebSpoon(kettleUrlNoKtrId,redata.result.id,sc.type);
+                                });
+                            }
+
+
+                        }
+                    });
+                    layer.close(index);
+                }
+            });
+            $(window).on("resize", function () {
+                layer.full(addScript);
+            });
+        })
+        function openWebSpoon(kettleUrlNoKtrId,scriptid,type){
+            if (scriptid != null) {
+                var url = 'http://' + kettleUrlNoKtrId;
+                if (type == '1') {
+                    url = url + '&trans=' + scriptid;
+                } else {
+                    url = url + '&job=' + scriptid;
+                }
+                window.open(url);
+            }
+        }
+        //重命名树节点
+        $('#reNameMenu').click(function () {
+            var reNameMenu = layer.open({
+                title: '重命名节点',
+                id: '',
+                type: 2,
+                shade: 0.2,
+                btn: ['保存', '取消'],
+                area: ['30%', '40%'],
+                content: './addNewScript.html?oldName=' + dtreeClickNode.context + '&isMenu=true',
+                yes: function (index, layero) {
+                    var body = layer.getChildFrame('body', index);
+                    var dataId;
+                    for (var x in treeData) {
+                        if (treeData[x].categoryId == dtreeClickNode.nodeId) {
+                            dataId = treeData[x].id;
+                        }
+                    }
+                    ;
+                    var updateData = {
+                        children: forReNameMenu.childParams,
+                        id: dataId,
+                        isDefault: dtreeClickNode.basicData,
+                        name: body.find("#menuName").val(),
+                        pid: dtreeClickNode.pid,
+                        repId: xmClickNode.id
+                    }
+                    $.ajax({
+                        type: "post",
+                        url: "/dataCollection/dicategory/update",
+                        dataType: 'json',
+                        cache: false,
+                        contentType: "application/json",
+                        data: JSON.stringify(updateData),
+                        success: function (redata) {
+                            if (redata.code == '0000') {
+                                layer.msg('修改节点名称成功');
+                                renderMenuTree(updateData.repId);
+                                layer.close(index);
+                            } else {
+                                layer.msg('修改节点名称失败');
+                            }
+                        }
+                    });
+                    layer.close(index);
+                }
+            });
+        })
+
+        //重命名脚本
+        $('#reNameScript').click(function () {
+            if (selectRow !== undefined) {
+                var script = selectRow.id.split('@');
+                var id = script.pop();
+                var type = 'job' === script[0] ? '0' : '1';
+                var reNameScript = layer.open({
+                    title: '重命名脚本',
+                    id: '',
+                    type: 2,
+                    shade: 0.2,
+                    btn: ['保存', '取消'],
+                    area: ['30%', '40%'],
+                    content: './addNewScript.html?oldName=' + selectRow.text + '&isMenu=false',
+                    yes: function (index, layero) {
+                        let body = layer.getChildFrame('body', index);
+                        let updateData = {
+                            name: body.find("#scriptName").val(),
+                            dirId: dtreeClickNode.nodeId,
+                            repId: xmClickNode.id,
+                            type: type,
+                            scriptId: id
+                        }
+                        $.ajax({
+                            type: "put",
+                            url: "/dataCollection/discript/update",
+                            dataType: 'json',
+                            cache: false,
+                            contentType: "application/json",
+                            data: JSON.stringify(updateData),
+                            success: function (redata) {
+                                if (redata.code == '0000') {
+                                    layer.msg('修改脚本名称成功');
+                                } else {
+                                    layer.msg('修改脚本名称失败');
+                                }
+                                renderTableTable(dtreeClickNode.nodeId);
+                                layer.close(index);
+                            }
+                        });
+                        layer.close(index);
+                    }
+                });
+            } else {
+                layer.msg('请先选择要重命名的脚本！');
+            }
+        })
+
+        //删除
+        $('#deleteMenu').click(function () {
+            var msg = '确定删除' + dtreeClickNode.context + '节点吗？';
+            layer.confirm(msg, {
+                title: '提示'
+            }, function (index) {
+                var dataId;
+                for (var x in treeData) {
+                    if (treeData[x].categoryId == dtreeClickNode.nodeId) {
+                        dataId = treeData[x].id;
+                    }
+                }
+                ;
+                $.ajax({
+                    type: "get",
+                    url: "/dataCollection/dicategory/delete?id=" + dataId,
+                    dataType: 'json',
+                    cache: false,
+                    contentType: "application/json",
+                    success: function (redata) {
+                        if (redata.code === '0000') {
+                            layer.msg(redata.message, {icon: 1});
+                            renderMenuTree(xmClickNode.id);
+                        } else if (redata.code === '9999') {
+                            layer.msg(redata.message, {icon: 2});
+                        }
+                        layer.close(index);
+                    }
+                });
+            });
+        })
+
+        /**
+         * 新建数据
+         */
+        $('#addData').click(function () {
+            if (!isLeaf) {
+                layer.alert("该节点禁止添加元数据");
+            } else {
+                var addData = layer.open({
+                    title: '新增数据',
+                    id: 'addDataLayer',
+                    type: 2,
+                    shade: 0.2,
+                    btn: ['保存', '关闭'],
+                    // resize: false,
+                    shadeClose: true,
+                    area: ['40%', '60%'],
+                    content: './dataMenuAddData.html?modelId=' + modelId + '&modelName=' + modelName,
+                    success: function (layero) {
+                    },
+                    yes: function (index) {
+                        //变灰禁用按钮
+                        $('.layui-layer-iframe .layui-layer-content iframe')[0].contentWindow.postMessage('submit', '*');
+                        // $('#layui-layer-iframe'+index).contentWindow.postMessage('submit', '*');
+
+                        window.addEventListener('message', function (event) {
+                            var eventData = event.data;
+                            var res = eventData.split('-');
+                            if (res[0] === 'success') {
+                                layer.alert(res[1], function (index) {
+                                    renderTableTable(modelId);
+                                    // table.reload('taskConfigIndexTable',{});
+                                    layer.close(index);
+                                });
+                                layer.close(index);
+                            } else if (res[0] === 'error') {
+                                layer.alert("新增数据失败，请重试", function (index) {
+                                    layer.close(index);
+                                });
+                            }
+                        });
+                    }
+                });
+                $(window).on("resize", function () {
+                    layer.full(addData);
+                });
+            }
+
+        });
+
+        /**
+         * 刷新
+         */
+        $('#refresh').click(function () {
+            renderTableTable(modelId);
+            // if(isLeaf){
+            //     renderTableTable(modelId);
+            // }else{
+            //     renderDataProperiesTable(modelId);
+            // }
+        });
+
+        /**
+         * 新建导入
+         */
+        $('#import').click(function () {
+            var import1 = layer.open({
+                title: '导入',
+                id: 'importLayer',
+                type: 2,
+                shade: 0.2,
+                btn: ['下载模板', '关闭'],
+                // resize: false,
+                shadeClose: true,
+                area: ['30%', '30%'],
+                content: './dataMenuImport.html?modelId=' + modelId + '&modelName=' + modelName,
+                success: function (layero) {
+                },
+                btn1: function () {
+                    window.open("/baseDataManagerServer/modelTable/downloadTemplate")
+                    return false;
+                }
+            });
+            // $(window).on("resize", function () {
+            //     layer.full(import1);
+            // });
+        });
+
+        /**
+         * 监听搜索
+         */
+        form.on('submit(data-search-btn)', function (data) {
+            renderMenuTree(data.field.keywords);
+            return false;
+        });
+
+        /**
+         * 监听操作
+         */
+        table.on('tool(menuIndexTable)', function (obj) {
+            var data = obj.data;
+            var event = obj.event;
+            var script = data.id.split('@');
+            var id = script.pop();
+            var type = 'job' === script[0] ? '0' : '1';
+            if (event === 'edit') {
+                var url = 'http://' + kettleUrlNoKtrId;
+                if (type == '1') {
+                    url = url + '&trans=' + id;
+                } else {
+                    url = url + '&job=' + id;
+                }
+                //-------编辑脚本-----------------
+                //let url = 'http://' + kettleUrlNoKtrId + data.scriptId;
+                window.open(url);
+            } else if (event === 'delete') {
+                //-------删除脚本-----------------
+                layer.confirm('确定删除此条数据?', {
+                    title: '提示'
+                }, function (index) {
+
+                    $.ajax({
+                        type: "delete",
+                        url: "/dataCollection/discript/delete?id=" + id + '&type=' + type + '&repId=' + xmClickNode.id,
+                        dataType: 'json',
+                        cache: false,
+                        contentType: "application/json",
+                        success: function (redata) {
+                            if (redata.code === '0000') {
+                                layer.msg(redata.message, {icon: 1});
+                            } else if (redata.code === '9999') {
+                                layer.msg(redata.message, {icon: 2});
+                            }
+                            layer.close(index);
+                            renderTableTable(modelId);
+                        }
+                    });
+                });
+            } else if (event === 'move') {
+                //-------移动脚本-----------------
+                var moveScript = layer.open({
+                    title: '移动脚本',
+                    id: '',
+                    type: 2,
+                    shade: 0.2,
+                    btn: ['保存', '取消'],
+                    area: ['400px', '300px'],
+                    content: './moveScript.html?repId=' + xmClickNode.id,
+                    yes: function (index, layero) {
+                        let body = layer.getChildFrame('body', index);
+                        let iframeWin = window[layero.find('iframe')[0]['name']];//得到iframe页的窗口对象，执行iframe页的方法：
+                        let dirId = iframeWin.returnInfo();
+                        if (dirId !== null && dirId !== '' && dirId !== undefined) {
+                            let moveData = {
+                                scriptId: data.id.split('@').pop(),
+                                dirId: dirId,
+                                repId: xmClickNode.id,
+                                type: type
+                            }
+                            $.ajax({
+                                type: "post",
+                                url: "/dataCollection/discript/moveScript",
+                                dataType: 'json',
+                                cache: false,
+                                contentType: "application/json",
+                                data: JSON.stringify(moveData),
+                                success: function (redata) {
+                                    if (redata.code == '0000') {
+                                        layer.msg('移动脚本成功');
+                                    } else {
+                                        layer.msg(redata.message);
+                                    }
+                                    renderTableTable(dtreeClickNode.nodeId);
+                                    layer.close(index);
+                                }
+                            });
+                            layer.close(index);
+                        } else {
+                            layer.msg('目标节点不可为空！');
+                        }
+
+                    }
+                });
+
+            } else if (event === 'watchData') {
+                layer.open({
+                    title: '查询',
+                    area: ['48%', '70%'],
+                    btn: ['关闭'],
+                    type: 1,
+                    maxmin: true,
+                    content: $('#watchData_div'),
+                    success: function () {
+                        var dataSQL = 'select * from ' + data.tableCode;
+                        if (dataSQL) {
+                            dataSQL = dataSQL.replace(/[#]/g, '$');
+                            dataSQL = dataSQL.replace(/[+]/g, '%2B');
+                        } else {
+                            layer.msg("请输入sql")
+                        }
+
+                        var newSqlIsExi = $.base64.btoa(dataSQL);
+                        //newSqlIsExi = encodeURIComponent(newSqlIsExi)
+                        var sentIsExi = {
+                            sql: newSqlIsExi
+                        }
+                        var charctername = data.datasourceName;
+                        var test = '/sqlManager/sqlExec/queryBySql?charCterName=' + charctername;//+'&tableName='+data.field['name'];
+                        var res = "";
+                        $.ajax({
+                            type: "POST",
+                            //async:false,
+                            url: "/sqlManager/sqlExec/getColumns?charCterName=" + charctername,
+                            data: sentIsExi,
+                            dataType: "json",
+                            cache: false,
+                            contentType: "application/json",
+                            async: true,//使用同步方式，目前data组件有同步依赖
+                            success: function (response) {
+                                res = response.map(item => {
+                                    return {
+                                        field: item,
+                                        title: item,
+                                        //width:80,
+                                        minWidth: 100
+                                    }
+                                })
+                                table.render({
+                                    elem: '#columns',
+                                    method: 'post',
+                                    url: test,
+                                    dataType: 'json',
+                                    contentType: 'application/json',
+                                    where: sentIsExi,
+                                    cols: [res],
+                                    page: true
+                                });
+                            },
+                            // url:test
+                        })
+                    }
+                });
+            } else if (event === 'publish') {
+                var str = ''
+                var isRelease = ''
+                if (data.isRelease == '1') {
+                    str = "取消发布"
+                    isRelease = '0'
+                } else {
+                    str = "发布"
+                    isRelease = '1'
+                }
+                layer.confirm('确定' + str + '此条数据?', {
+                    title: '提示'
+                }, function (index) {
+                    $.ajax({
+                        type: "get",
+                        url: "/sqlManager/modelDataAssets/isRelease",
+                        dataType: 'json',
+                        cache: false,
+                        contentType: "application/json",
+                        data: {
+                            id: data.id,
+                            isRelease: isRelease
+                        },
+                        success: function (redata) {
+                            // layer.alert(redata.message);
+                            if (redata.code === '0000') {
+                                layer.msg(redata.msg, {icon: 1});
+                                renderMenuTree();
+                            } else if (redata.code === '9999') {
+                                layer.msg(redata.msg, {icon: 2});
+                            }
+                            layer.close(index);
+                        }
+                    });
+                    //}
+                });
+            }
+        });
+
+        /**
+         * 渲染数据资产目录表
+         */
+        // function renderDataProperiesTable(modelId){
+        //     var menuTable = table.render({
+        //         elem: '#menuIndexTable',
+        //         skin: 'row',
+        //         method:'get',
+        //         url:'/dataCollection/repository/findCategoryByPid?id='+modelId,
+        //
+        //         parseData:function (res){
+        //             return{
+        //                 code:res.code,
+        //                 data:res.result,
+        //                 msg:res.message,
+        //                 count:res.count
+        //             }
+        //         },
+        //         cols: [
+        //             [
+        //                 {type: 'numbers', width: 80, title: '序号'},
+        //                 {field: 'id',  title: '编号'},
+        //                 {field: 'text',  title: '名称'}
+        //                 //{title:'操作', width: 180, toolbar:'#modelTableBar'}
+        //             ]
+        //         ],
+        //         page:true,
+        //         request:{
+        //             pageName:'page',
+        //             limitName:'pageSize'
+        //         },
+        //         // contentType: "application/json",
+        //         // response:{
+        //         //     statusCode:'S-0000'
+        //         // },
+        //         done: function(res, curr, count) { // 表格渲染完成之后的回调
+        //             if(res.data !== null && res.data !== ''){
+        //                 res.data.forEach(function(item, index) {
+        //                     if (index % 2 === 0) {
+        //                         $(".layui-table tbody tr[data-index='" + index + "']").css("background-color", "#FFFFFF");
+        //                     } else {
+        //                         $(".layui-table tbody tr[data-index='" + index + "']").css("background-color", "#F8F9FB");
+        //                     }
+        //                 });
+        //             }
+        //         }
+        //     });
+        // }
+
+        /**
+         * 生成树
+         * @param data
+         * @returns {[]}
+         */
+        function toTree(data) { // 删除 所有 children,以防止多次调用
+            data.forEach(function (item) {
+                delete item.children;
+            }); // 将数据存储为 以 id 为 KEY 的 map 索引数据列
+            var map = {};
+            data.forEach(function (item) {
+                item.label = item.id;
+                item.text = item.text;
+                item.spread = false;
+                map[item.id] = item;
+            });
+            var val = [];
+            data.forEach(function (item) { // 以当前遍历项，的pid,去map对象中找到索引的id
+                var parent = map[item.pids]; // 如果找到索引，那么说明此项不在顶级当中,那么需要把此项添加到，他对应的父级中
+                if (parent) {
+                    (parent.children || (parent.children = [])).push(item);
+                } else { //如果没有在map中找到对应的索引ID,那么直接把 当前的item添加到 val结果集中，作为顶级
+                    val.push(item);
+                }
+            });
+            return val;
+        }
+
+        function toTree2(data) { // 删除 所有 children,以防止多次调用
+            data.forEach(function (item) {
+                delete item.children;
+            }); // 将数据存储为 以 id 为 KEY 的 map 索引数据列
+            var map = {};
+            data.forEach(function (item) {
+                item.label = item.id;
+                item.name = item.repName;
+                item.value = item.id;
+                map[item.id] = item;
+            });
+            var val = [];
+            data.forEach(function (item) { // 以当前遍历项，的pid,去map对象中找到索引的id
+                var parent = map[item.pid]; // 如果找到索引，那么说明此项不在顶级当中,那么需要把此项添加到，他对应的父级中
+                if (parent) {
+                    (parent.children || (parent.children = [])).push(item);
+                } else { //如果没有在map中找到对应的索引ID,那么直接把 当前的item添加到 val结果集中，作为顶级
+                    val.push(item);
+                }
+            });
+            return val;
+        }
+    });
+    window.getUrlParams = function (key) {
+        //获取url参数
+        var reg = new RegExp("(^|&)" + key + "=([^&]*)(&|$)", "i");
+        var url = decodeURI(window.location.search)
+        var r = url.substr(1).match(reg);
+        if (r != null) return unescape(r[2]);
+        return null;
+    }
+
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,79 @@
+server:
+  port: 7080
+  servlet: # 访问路径
+    context-path: /
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
+  tomcat:
+    uri-encoding: UTF-8 # get请求中文乱码配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: 'true'
+spring:
+  application:
+    name: etl-dispatch
+  mvc: # 日期转换
+    date-format: yyyy-MM-dd HH:mm:ss
+  jackson: # json日期转换
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: always #json格式化的时候不显示值为空的属性字段
+  profiles:
+    include: # 引入自定义配置文件
+      - kettle
+      - mysql   #选择加载指定数据源配置
+      - shiro
+logging:
+  level:
+    com.jason.datacollection.mapper: debug
+#配置webSpoon
+spoon:
+  url: 127.0.0.1:8080/spoon/spoon
+constant:
+  salt: kettle-salt
+  hash-iterations: 10
+#配置是否需要登录，true：需要登录，false：不需要登录
+shouldLogin: false
+webhooks:
+  start: false
+  #dingtalk:
+  #wechat:
+
+mail:
+  #是否启动邮件
+  start: false
+  # 邮件服务器的SMTP地址
+  host: smtp.163.com
+  # 邮件服务器的SMTP端口
+  port: 465
+  # 发件人（必须正确，否则发送失败）
+  from: XXXXXX@163.com
+  # 用户名（注意：如果使用foxmail邮箱，此处user为qq号）
+  user: XXXXXX@163.com
+  # 密码（注意，某些邮箱需要为SMTP服务单独设置密码，详情查看相关帮助）
+  pass: XXXXXX
+  # 收件人(多收件人，使用","隔开,如：a@qq.com,b@qq.com)
+  recipient: XXXXXX@qq.com
+  #使用 STARTTLS安全连接，STARTTLS是对纯文本通信协议的扩展。
+  starttlsEnable: true
+  # 使用SSL安全连接
+  sslEnable: true
+  # 指定实现javax.net.SocketFactory接口的类的名称,这个类将被用于创建SMTP的套接字
+  socketFactoryClass: javax.net.ssl.SSLSocketFactory
+  # 如果设置为true,未能创建一个套接字使用指定的套接字工厂类将导致使用java.net.Socket创建的套接字类, 默认值为true
+  socketFactoryFallback: true
+  # 指定的端口连接到在使用指定的套接字工厂。如果没有设置,将使用默认端口456
+  socketFactoryPort: 465
+  # SMTP超时时长，单位毫秒，缺省值不超时
+  timeout: 0
+  # Socket连接超时值，单位毫秒，缺省值不超时
+  connectionTimeout: 0
+thread:
+  corePoolSize: 10
+  maxPoolSize: 50
+  queueCapacity: 500
+  keepAliveSeconds: 10
+#驱动包指定路径
+drives-dir: /apps/var/file-rep/drives/

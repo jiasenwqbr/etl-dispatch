@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jason.datacollection.mapper.DiScriptMapper">
+    <resultMap id="BaseResultMap" type="com.jason.datacollection.entity.DiScript">
+        <id column="ID" jdbcType="VARCHAR" property="id"/>
+        <result column="NAME" jdbcType="VARCHAR" property="name"/>
+        <result column="TYPE" jdbcType="VARCHAR" property="type"/>
+        <result column="PATH" jdbcType="VARCHAR" property="path"/>
+        <result column="CATEGORY_ID" jdbcType="VARCHAR" property="categoryId"/>
+        <result column="SCRIPT_ID" jdbcType="VARCHAR" property="scriptId"/>
+        <result column="REP_ID" jdbcType="VARCHAR" property="repId"/>
+        <result column="CREATE_DATE" jdbcType="TIMESTAMP" property="createDate"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+    ID, NAME, TYPE, PATH, CATEGORY_ID, SCRIPT_ID, REP_ID, CREATE_DATE
+  </sql>
+    <delete id="deleteByCategoryIdInAndRepId" parameterType="java.util.Map">
+        delete from DI_SCRIPT where REP_ID = #{repId,jdbcType=VARCHAR}
+        and CATEGORY_ID in
+        <foreach item="item" collection="categorys" separator="," open="(" close=")" index="">
+            #{item, jdbcType=VARCHAR}
+        </foreach>
+    </delete>
+    <select id="findByCategoryIdAndRepId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_SCRIPT
+        where CATEGORY_ID = #{categoryId,jdbcType=VARCHAR} and REP_ID=#{repId,jdbcType=VARCHAR}
+    </select>
+    <select id="findByCategoryIdInAndRepId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_SCRIPT
+        where REP_ID = #{repId,jdbcType=VARCHAR}
+        and CATEGORY_ID in
+        <foreach item="item" collection="categorys" separator="," open="(" close=")" index="">
+            #{item,jdbcType=VARCHAR}
+        </foreach>
+    </select>
+    <select id="findByRepIdAndType" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_SCRIPT
+        where REP_ID = #{repId,jdbcType=VARCHAR} and TYPE=#{type,jdbcType=VARCHAR}
+    </select>
+    <select id="findByCategoryIdInAndRepIdAndType" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_SCRIPT
+        where REP_ID = #{repId,jdbcType=VARCHAR}
+        and CATEGORY_ID in
+        <foreach item="item" collection="categorys" separator="," open="(" close=")" index="">
+            #{item.id, jdbcType=VARCHAR}
+        </foreach>
+        AND TYPE=#{type}
+    </select>
+    <select id="findByCategoryPidAndRepId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_SCRIPT
+        where REP_ID = #{repId,jdbcType=VARCHAR} and CATEGORY_ID=#{categoryId,jdbcType=VARCHAR}
+    </select>
+    <select id="findByRepId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from DI_SCRIPT
+        where REP_ID = #{repId,jdbcType=VARCHAR}
+    </select>
+    <delete id="deleteByRepId" parameterType="java.util.Map">
+        delete from DI_SCRIPT where REP_ID = #{repId,jdbcType=VARCHAR}
+    </delete>
+    <insert id ="insertAll" parameterType="java.util.List" >
+        insert into
+        DI_SCRIPT
+        (ID, NAME, TYPE, PATH, CATEGORY_ID, SCRIPT_ID, REP_ID, CREATE_DATE)
+        select A.*  from(
+        <foreach collection="list" item="dis" index="index" separator="UNION ALL">
+            select
+            #{dis.id, jdbcType=VARCHAR},
+            #{dis.name, jdbcType=VARCHAR},
+            #{dis.type, jdbcType=VARCHAR},
+            #{dis.path, jdbcType=VARCHAR},
+            #{dis.categoryId, jdbcType=VARCHAR},
+            #{dis.scriptId, jdbcType=VARCHAR},
+            #{dis.repId, jdbcType=VARCHAR},
+            #{dis.createDate, jdbcType=VARCHAR}
+            from dual
+        </foreach >
+        )A
+    </insert >
+</mapper>

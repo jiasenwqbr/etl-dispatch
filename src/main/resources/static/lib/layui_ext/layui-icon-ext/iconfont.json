@@ -1,0 +1,51 @@
+{
+  "id": "2455190",
+  "name": "layui-icons",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "4628497",
+      "name": "WORD",
+      "font_class": "WORD",
+      "unicode": "e640",
+      "unicode_decimal": 58944
+    },
+    {
+      "icon_id": "13301872",
+      "name": "excel",
+      "font_class": "excel",
+      "unicode": "e61c",
+      "unicode_decimal": 58908
+    },
+    {
+      "icon_id": "15416676",
+      "name": "pdf",
+      "font_class": "pdf",
+      "unicode": "e605",
+      "unicode_decimal": 58885
+    },
+    {
+      "icon_id": "15416681",
+      "name": "txt",
+      "font_class": "txt",
+      "unicode": "e606",
+      "unicode_decimal": 58886
+    },
+    {
+      "icon_id": "15416685",
+      "name": "文件夹",
+      "font_class": "wenjianjia",
+      "unicode": "e607",
+      "unicode_decimal": 58887
+    },
+    {
+      "icon_id": "19649316",
+      "name": "未知",
+      "font_class": "weizhi",
+      "unicode": "e641",
+      "unicode_decimal": 58945
+    }
+  ]
+}
